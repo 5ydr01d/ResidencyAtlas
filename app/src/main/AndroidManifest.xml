@@ -6,7 +6,7 @@
         android:icon="@android:drawable/ic_menu_search"
         android:roundIcon="@android:drawable/ic_menu_search"
         android:label="Residency Atlas"
-        android:description="Offline-first medical residency question bank"
+       
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="false">
         <activity
