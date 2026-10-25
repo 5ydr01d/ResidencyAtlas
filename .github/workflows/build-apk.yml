@@ -1,0 +1,103 @@
+name: Build Residency Atlas APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: residency-atlas-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Validate bank and build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Gradle 8.9
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.9'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and build tools
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Assemble original Markdown source from transferred parts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -d _import/source ]]; then
+            count=$(find _import/source -maxdepth 1 -type f -name 'part*.md' | wc -l | tr -d ' ')
+            test "$count" = "41" || { echo "Expected 41 source parts; found $count"; exit 1; }
+            mkdir -p data
+            cat _import/source/part*.md > data/Residency_Part_1_Questions_With_High_Yield_Topic_Coverage.md
+          fi
+          test -s data/Residency_Part_1_Questions_With_High_Yield_Topic_Coverage.md
+          echo "Source bytes: $(wc -c < data/Residency_Part_1_Questions_With_High_Yield_Topic_Coverage.md)"
+          echo "Source lines: $(wc -l < data/Residency_Part_1_Questions_With_High_Yield_Topic_Coverage.md)"
+
+      - name: Generate structured, offline question data
+        run: python3 scripts/parse_bank.py data/Residency_Part_1_Questions_With_High_Yield_Topic_Coverage.md app/src/main/assets/questions.js --js
+
+      - name: Validate record count, IDs, subjects and keys
+        run: python3 scripts/validate_bank.py app/src/main/assets/questions.js
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check app/src/main/assets/app.js
+          node --check app/src/main/assets/questions.js
+
+      - name: Remove transfer-only files and commit normalized source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _import import_chunks
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Assemble source bank and generated offline question index"
+            git push origin HEAD:$GITHUB_REF_NAME
+          else
+            echo "No normalization changes to commit."
+          fi
+
+      - name: Build installable debug APK
+        run: gradle --no-daemon clean assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: residency-atlas-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Write build summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Residency Atlas build"
+            echo ""
+            echo "- Source bank: 764 expected records"
+            echo "- The source key is preserved; structural validation is not medical fact-checking."
+          } >> "$GITHUB_STEP_SUMMARY"
