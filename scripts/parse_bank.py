@@ -16,7 +16,7 @@ def parse(path):
     matches=list(Q.finditer(text)); out=[]
     for i,m in enumerate(matches):
         block=re.sub(r'\n{3,}','\n\n',text[m.start():matches[i+1].start() if i+1<len(matches) else len(text)].strip())
-        qid=m.group(1); prior=[h for h in headings if h[0]<m.start()]; subject,subtopic=(prior[-1][1],prior[-1][2]) if prior else ('Unclassified','Unclassified')
+        qid=m.group(1); ctx=next((h for h in headings if h[0]==m.start()),None); subject,subtopic=(ctx[1],ctx[2]) if ctx else ('Unclassified','Unclassified')
         am=re.search(r'^\*Appeared in:\s*(.*?)\*\s*$',block,re.M); appearance=am.group(1).strip() if am else ''
         tm=re.search(r'^\*(True/False(?:\s*\([^*]+\))?|Single Best Answer(?:\s*\([^*]+\))?)\*\s*$',block,re.M); label=tm.group(1) if tm else ''
         typ='tf' if label.startswith('True/False') else ('sba' if label.startswith('Single Best Answer') else 'unknown')
