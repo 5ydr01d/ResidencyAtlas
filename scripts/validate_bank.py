@@ -13,5 +13,8 @@ for x in q:
  assert x['options'],'Missing options: '+x['id']
 assert sum(x['questionType']=='tf' for x in q)>500,'Unexpectedly low T/F count'
 assert sum(x['questionType']=='sba' for x in q)>50,'Unexpectedly low SBA count'
-print('PASS: %d unique questions; %d subjects.'%(len(q),len({x['subject'] for x in q})))
+expected={'Anatomy':112,'Physiology':146,'Biochemistry':32,'Pathology':86,'Microbiology & Immunology':151,'Pharmacology':74,'Medicine':163}
+actual={name:sum(x['subject']==name for x in q) for name in expected}
+assert actual==expected,'Subject counts differ from the source structure: '+str(actual)
+print('PASS: %d unique questions; verified subject counts: %s'%(len(q),actual))
 print('Source-key parsing is structural only and does not medically verify answers.')
