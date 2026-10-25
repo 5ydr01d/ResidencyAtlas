@@ -34,8 +34,8 @@ function renderMd(src){
  closeLists();return out.join('');
 }
 function years(){var a=[];BANK.forEach(function(q){(q.years||[]).forEach(function(y){if(a.indexOf(String(y))<0)a.push(String(y));});});return a.sort(function(a,b){return +b-(+a);});}
-function uniq(field){var a=[];BANK.forEach(function(q){var v=q[field];if(v&&v!=='Unclassified'&&a.indexOf(v)<0)a.push(v);});return a.sort(function(a,b){return a.localeCompare(b);});}
-function optList(vals,current,label){return '<option value="">'+label+'</option>'+vals.map(function(v){return '<option value="'+esc(v)+'" '+(String(v)===String(current)?'selected':'')+'>'+esc(v)+'</option>';}).join('');}
+function uniq(field){var a=[];BANK.forEach(function(q){var raw=q[field],vals=Array.isArray(raw)?raw:[raw];vals.forEach(function(v){if(v&&v!=='Unclassified'&&a.indexOf(v)<0)a.push(v);});});return a.sort(function(a,b){return String(a).localeCompare(String(b));});}
+function optList(vals,current,label){return '<option value="">'+label+'</option>'+vals.map(function(v){var p=String(v).split('\u0001'),value=p[0],title=p[1]||p[0];return '<option value="'+esc(value)+'" '+(String(value)===String(current)?'selected':'')+'>'+esc(title)+'</option>';}).join('');}
 function isBookmarked(id){return state.bookmarks.indexOf(id)>=0;}
 function isFlagged(id){return state.flags.indexOf(id)>=0;}
 function statusOf(q){var a=state.answers[q.id];if(!a||!a.answered)return 'unanswered';return a.status||'unverified';}
