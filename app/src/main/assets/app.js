@@ -3,7 +3,7 @@
 var BANK=Array.isArray(window.QUESTION_BANK)?window.QUESTION_BANK:[];
 var STORE='residencyAtlas.v1';
 var state={answers:{},bookmarks:[],flags:[],font:17,dark:false,showNotes:true};
-var filters={q:'',year:'',session:'',subject:'',topic:'',type:'',status:'all',sort:'source'};
+var filters={q:'',year:'',session:'',subject:'',topic:'',subtopic:'',type:'',status:'all',sort:'source'};
 var page='home',currentId='',mode='study',revealed=new Set(),selected={},queue=[],queuePos=0,limit=30,timer=0;
 var $=function(s,root){return (root||document).querySelector(s);};
 var $$=function(s,root){return Array.from((root||document).querySelectorAll(s));};
@@ -46,7 +46,8 @@ function filtered(){
   if(filters.year && !(q.years||[]).map(String).includes(String(filters.year)))return false;
   if(filters.session && !(q.sessionBuckets||[]).includes(filters.session))return false;
   if(filters.subject&&q.subject!==filters.subject)return false;
-  if(filters.topic&&q.subtopic!==filters.topic)return false;
+  if(filters.topic&&q.coverageTitle!==filters.topic)return false;
+  if(filters.subtopic&&q.subtopic!==filters.subtopic)return false;
   if(filters.type&&q.questionType!==filters.type)return false;
   var st=filters.status;
   if(st==='bookmarked'&&!isBookmarked(q.id))return false;
@@ -58,7 +59,7 @@ function filtered(){
  out.sort(function(a,b){
   if(filters.sort==='year')return (Math.max.apply(null,b.years||[0])-Math.max.apply(null,a.years||[0]))||a.id.localeCompare(b.id,undefined,{numeric:true});
   if(filters.sort==='subject')return a.subject.localeCompare(b.subject)||a.subtopic.localeCompare(b.subtopic)||a.id.localeCompare(b.id,undefined,{numeric:true});
-  if(filters.sort==='topic')return a.subtopic.localeCompare(b.subtopic)||a.subject.localeCompare(b.subject)||a.id.localeCompare(b.id,undefined,{numeric:true});
+  if(filters.sort==='topic')return a.coverageTitle.localeCompare(b.coverageTitle)||a.subtopic.localeCompare(b.subtopic)||a.id.localeCompare(b.id,undefined,{numeric:true});
   if(filters.sort==='type')return a.questionType.localeCompare(b.questionType)||a.id.localeCompare(b.id,undefined,{numeric:true});
   return a.id.localeCompare(b.id,undefined,{numeric:true});
  });return out;
@@ -80,7 +81,8 @@ function homePage(){
  html+='<div class="field"><label>EXAM YEAR</label><select data-filter="year">'+optList(years(),filters.year,'All years')+'</select></div>';
  html+='<div class="field"><label>EXAM SESSION / SOURCE</label><select data-filter="session">'+optList(uniq('sessionBuckets').concat(BANK.reduce(function(a,q){(q.sessionBuckets||[]).forEach(function(v){if(a.indexOf(v)<0)a.push(v);});return a;},[])).filter(function(v,i,a){return a.indexOf(v)===i;}).sort(),filters.session,'All sessions')+'</select></div>';
  html+='<div class="field"><label>SUBJECT</label><select data-filter="subject">'+optList(uniq('subject'),filters.subject,'All subjects')+'</select></div>';
- html+='<div class="field"><label>TOPIC / SUBTOPIC</label><select data-filter="topic">'+optList(uniq('subtopic'),filters.topic,'All topics')+'</select></div>';
+ html+='<div class="field"><label>HIGH-YIELD TOPIC</label><select data-filter="topic">'+optList(uniq('coverageTitle'),filters.topic,'All high-yield topics')+'</select></div>';
+ html+='<div class="field"><label>SUBTOPIC / CHAPTER</label><select data-filter="subtopic">'+optList(uniq('subtopic'),filters.subtopic,'All subtopics')+'</select></div>';
  html+='<div class="field"><label>QUESTION FORMAT</label><select data-filter="type">'+optList([{v:'tf',t:'True / False'},{v:'sba',t:'Single Best Answer'},{v:'unknown',t:'Unclassified'}].map(function(x){return x.v+'\u0001'+x.t;}),filters.type,'All formats').replace(/<option value="([^"]+)">([^<]*)<\/option>/g,function(m,v,t){var p=v.split('\u0001');return '<option value="'+esc(p[0])+'">'+esc(p[1]||t)+'</option>';})+'</select></div>';
  html+='<div class="field"><label>PROGRESS</label><select data-filter="status">'+optList([{v:'all',t:'All questions'},{v:'unanswered',t:'Unanswered'},{v:'incorrect',t:'Incorrect previously'},{v:'bookmarked',t:'Bookmarked'},{v:'verify',t:'Needs verification'}].map(function(x){return x.v+'\u0001'+x.t;}),filters.status,'All questions').replace(/<option value="([^"]+)">([^<]*)<\/option>/g,function(m,v,t){var p=v.split('\u0001');return '<option value="'+esc(p[0])+'" '+(p[0]===filters.status?'selected':'')+'>'+esc(p[1]||t)+'</option>';})+'</select></div></div>';
  html+='<div class="filter-bottom"><div class="chip-row"><button class="chip '+(filters.status==='all'?'active':'')+'" data-status="all">All</button><button class="chip '+(filters.status==='unanswered'?'active':'')+'" data-status="unanswered">Unanswered</button><button class="chip '+(filters.status==='incorrect'?'active':'')+'" data-status="incorrect">Incorrect</button><button class="chip '+(filters.status==='bookmarked'?'active':'')+'" data-status="bookmarked">Bookmarked</button><button class="chip '+(filters.status==='verify'?'active':'')+'" data-status="verify">Verify</button></div><div class="field"><label>SORT RESULTS</label><select data-filter="sort">'+optList([{v:'source',t:'Source order'},{v:'year',t:'Newest year first'},{v:'subject',t:'Subject'},{v:'topic',t:'Topic'},{v:'type',t:'Question format'}].map(function(x){return x.v+'\u0001'+x.t;}),filters.sort,'Source order').replace(/<option value="([^"]+)">([^<]*)<\/option>/g,function(m,v,t){var p=v.split('\u0001');return '<option value="'+esc(p[0])+'" '+(p[0]===filters.sort?'selected':'')+'>'+esc(p[1]||t)+'</option>';})+'</select></div></div></section>';
@@ -92,7 +94,7 @@ function homePage(){
 function queueForPage(){if(queue.length)return queue;return filtered().map(function(q){return q.id;});}
 function detailQuestion(){var q=BANK.find(function(x){return x.id===currentId;});if(!q){homePage();return;}
  page='question';var qu=queueForPage(),idx=qu.indexOf(q.id);if(idx<0){qu=[q.id];idx=0;queue=qu;}
- var prev=qu[idx-1],next=qu[idx+1],a=state.answers[q.id]||{},sel=selected[q.id]||a.choices||{},revealedNow=mode!=='practice'||revealed.has(q.id)||a.revealed===true;
+ var prev=qu[idx-1],next=qu[idx+1],a=state.answers[q.id]||{},sel=selected[q.id]||a.choices||{},revealedNow=revealed.has(q.id)||a.revealed===true;
  var title=plain(q.stemMarkdown);if(title.length>450)title=title.slice(0,450);
  var meta='<span class="tag">'+esc(q.subject)+'</span><span class="tag">'+esc(q.subtopic)+'</span><span class="tag">'+(q.questionType==='tf'?'True / False':q.questionType==='sba'?'Single Best Answer':'Unknown format')+'</span>'+(q.years||[]).map(function(y){return '<span class="tag source">'+esc(y)+'</span>';}).join('')+'<span class="tag">'+esc((q.sessionBuckets||[]).join(' · ')||'Year/session not specified')+'</span>';
  var html='';
@@ -212,7 +214,7 @@ document.addEventListener('click',function(e){
   if(act==='font-up'||act==='font-down'){state.font=Math.max(14,Math.min(25,(state.font||17)+(act==='font-up'?1:-1)));document.documentElement.style.fontSize=state.font+'px';save();if(page==='question')detailQuestion();else render();return;}
   if(act==='theme'){state.dark=!state.dark;document.body.classList.toggle('dark',state.dark);save();return;}
   if(act==='more'){limit+=30;render();return;}
-  if(act==='clear-filters'){filters={q:'',year:'',session:'',subject:'',topic:'',type:'',status:'all',sort:'source'};limit=30;homePage();return;}
+  if(act==='clear-filters'){filters={q:'',year:'',session:'',subject:'',topic:'',subtopic:'',type:'',status:'all',sort:'source'};limit=30;homePage();return;}
   if(act==='clear-search'){filters.q='';if(page==='bookmarks'||page==='mistakes'||page==='verify')listPage();else homePage();return;}
   if(act==='back-results'){if(queue.length){queue=[];}page='home';homePage();return;}
   if(act==='prev-question'){nextQuestion(-1);return;}
