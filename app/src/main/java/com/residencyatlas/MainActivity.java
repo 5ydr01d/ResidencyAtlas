@@ -3,6 +3,8 @@ package com.residencyatlas;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -25,9 +27,8 @@ public class MainActivity extends Activity {
     private String pendingFilename;
     private String pendingContent;
     private static final Set<String> SAFE_HOSTS = new HashSet<>(Arrays.asList(
-        "google.com", "www.google.com", "scholar.google.com",
-        "pubmed.ncbi.nlm.nih.gov", "www.who.int", "who.int",
-        "nice.org.uk", "www.nice.org.uk", "cdc.gov", "www.cdc.gov"
+        "google.com", "www.google.com", "chatgpt.com", "www.chatgpt.com",
+        "www.who.int", "who.int", "nice.org.uk", "www.nice.org.uk", "cdc.gov", "www.cdc.gov"
     ));
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -88,6 +89,25 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void askChatGPT(String prompt) {
+            final String questionPrompt = prompt == null ? "" : prompt;
+            runOnUiThread(() -> {
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_TEXT, questionPrompt);
+                share.putExtra(Intent.EXTRA_TITLE, "Residency Atlas medical answer verification");
+                share.setPackage("com.openai.chatgpt");
+                try {
+                    startActivity(share);
+                } catch (ActivityNotFoundException e) {
+                    copyPromptAndOpenChatGPT(questionPrompt);
+                } catch (RuntimeException e) {
+                    copyPromptAndOpenChatGPT(questionPrompt);
+                }
+            });
+        }
+
+        @JavascriptInterface
         public void saveTextFile(String filename, String content) {
             runOnUiThread(() -> {
                 pendingFilename = filename == null ? "residency-atlas-export.json" :
@@ -119,6 +139,31 @@ public class MainActivity extends Activity {
         } finally {
             pendingFilename = null;
             pendingContent = null;
+        }
+    }
+
+    private void copyPromptAndOpenChatGPT(String prompt) {
+        boolean copied = false;
+        try {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                clipboard.setPrimaryClip(ClipData.newPlainText("Residency Atlas verification prompt", prompt));
+                copied = true;
+            }
+        } catch (RuntimeException ignored) {
+            // The web fallback remains useful even if this device blocks clipboard access.
+        }
+
+        if (copied) {
+            Toast.makeText(this, "Verification prompt copied. Paste it into ChatGPT.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Could not share the prompt. Opening ChatGPT; try sharing again.", Toast.LENGTH_LONG).show();
+        }
+
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://chatgpt.com/")));
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "ChatGPT could not be opened on this device.", Toast.LENGTH_LONG).show();
         }
     }
 
