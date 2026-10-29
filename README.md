@@ -9,12 +9,12 @@ Residency Atlas is an independent Android study app built around the supplied **
 - Interactive True/False and Single Best Answer practice, source-key reveal, bookmarks, mistake review and flagged questions.
 - Local progress analytics, adjustable text size, dark mode, progress backup/restore and JSON export.
 - Offline access to all bundled questions and explanations.
-- Optional ChatGPT-assisted independent answer review, Google search and WHO/NICE/CDC-oriented guideline searches for verification.
+- Compact AI verification handoff by default, with an optional full audit; Android share chooser supports ChatGPT, Claude and other compatible apps when installed, plus Google and WHO/NICE/CDC-oriented searches.
 - GitHub Actions builds a downloadable Android debug APK.
 
 ## Answer provenance
 
-Question wording, supplied answer annotations, appearances and topic coverage are retained from the Markdown bank. The parser only structures source information; a parsed key is **not** independently medically verified. Questions without complete machine-readable answer annotations are marked for review. Online verification opens ChatGPT or external searches; it does not automatically certify a result. The ChatGPT handoff places source-key annotations at the end of the prompt so the question can be solved independently first.
+Question wording, supplied answer annotations, appearances and topic coverage are retained from the Markdown bank. The parser only structures source information; a parsed key is **not** independently medically verified. Questions without complete machine-readable answer annotations are marked for review. Online verification opens ChatGPT or external searches; it does not automatically certify a result. The AI handoff places source-key annotations at the end of the prompt so the question can be solved independently first. Quick verify keeps the prompt compact while retaining the full stem and options; Full audit adds source metadata, topic coverage and detailed evidence-review instructions. On Android, the system share chooser lets the user select ChatGPT, Claude or another compatible app when installed.
 
 ## Build from GitHub
 

@@ -127,7 +127,7 @@ function detailQuestion(){var q=BANK.find(function(x){return x.id===currentId;})
  html+='<section class="content-card notes-card"><button class="notes-toggle" data-action="toggle-notes"><h2>High-yield topic coverage</h2><span>'+(state.showNotes?'−':'+')+'</span></button>'+(state.showNotes?'<div class="notes-body">'+(q.coverageMarkdown?renderMd(q.coverageMarkdown):'<p class="muted">No separate topic coverage section was present in the source record.</p>')+'</div>':'')+'</section>';
  html+='<details class="content-card notes-card"><summary class="notes-toggle"><h2>Full original source record</h2><span>Open</span></summary><div class="notes-body">'+renderMd(q.originalMarkdown)+'</div></details></div>';
  html+='<aside class="side-stack"><section class="content-card"><div class="side-card-title">Question details</div><div class="side-stat"><div class="mini-stat"><strong>'+esc((q.years||[]).join(', ')||'—')+'</strong><span>Exam year(s)</span></div><div class="mini-stat"><strong>'+q.options.length+'</strong><span>Options / stems</span></div></div><div class="side-line"><span>Subject</span><strong>'+esc(q.subject)+'</strong></div><div class="side-line"><span>Subtopic</span><strong>'+esc(q.subtopic)+'</strong></div><div class="side-line"><span>Progress</span><strong>'+(a.answered?'Attempted':'Not attempted')+'</strong></div><div class="side-line"><span>Last result</span><strong>'+esc(a.answered?(a.status==='correct'?'Matches source key':a.status==='incorrect'?'Review':'Not scored'):'—')+'</strong></div></section>';
- html+='<section class="verify-box"><h3>Verify answer online</h3><p>Ask ChatGPT to solve the question independently, check current evidence and compare its conclusion with the bank’s original key. You review the final judgement.</p><div class="verify-actions"><button class="verify-source" data-verify-source="chatgpt">Ask ChatGPT ↗</button><button class="verify-source" data-verify-source="google">Google search ↗</button><button class="verify-source" data-verify-source="guidelines">Guidelines / WHO ↗</button></div><div class="verify-disclaimer">Review source authority, publication date and applicability. The original answer is preserved separately from your conclusion.</div></section></aside></div>';
+ html+='<section class="verify-box"><h3>AI answer verification</h3><p>Compact is the default. On Android, choose ChatGPT, Claude or another text-sharing app.</p><div class="verify-actions"><button class="verify-source" data-verify-source="chatgpt" data-verify-mode="compact">Quick verify ↗</button><button class="verify-source" data-verify-source="chatgpt" data-verify-mode="full">Full audit ↗</button><button class="verify-source" data-verify-source="google">Google search ↗</button><button class="verify-source" data-verify-source="guidelines">Guidelines / WHO ↗</button></div><div class="verify-disclaimer">The question and options are never truncated. Full audit adds source context and detailed evidence instructions. Review cited sources and dates yourself.</div></section></aside></div>';
  $('#main').innerHTML=html;setActiveNav();updateRail();
 }
 function resultsTitle(){if(page==='bookmarks')return 'Bookmarked questions';if(page==='mistakes')return 'Mistake review';if(page==='verify')return 'Questions needing verification';return 'Questions';}
@@ -156,7 +156,7 @@ function settingsPage(){
  html+='<div class="settings-grid"><section class="content-card"><h2>Reading comfort</h2><p>Adjust the overall text size for easier reading on a phone.</p><div class="settings-actions"><button class="secondary" data-action="font-down">A− Smaller</button><button class="secondary" data-action="font-up">A+ Larger</button><button class="secondary" data-action="theme">Toggle dark mode</button></div><p>Current size: '+state.font+' px · Theme: '+(state.dark?'Dark':'Light')+'</p></section>';
  html+='<section class="content-card"><h2>Export your progress</h2><p>Save bookmarks, flags, settings and your answer history as a JSON file to back it up or move it to another device.</p><div class="settings-actions"><button class="primary" data-action="export-progress">Export progress JSON</button></div><details class="advanced-tools"><summary>Advanced data tools</summary><p class="small-note">Export the complete bundled question bank for external analysis or backup.</p><div class="settings-actions"><button class="secondary" data-action="export-bank">Export question bank JSON</button></div></details></section>';
  html+='<section class="content-card"><h2>Restore a backup</h2><p>Import a previously exported Residency Atlas progress file. This merges saved progress by question ID.</p><div class="settings-actions"><button class="secondary" data-action="import-progress">Choose backup file</button><input type="file" id="importFile" class="file-input" accept=".json,application/json"></div></section>';
- html+='<section class="content-card"><h2>Question source & verification</h2><p>The included Markdown bank is the source of record. Wording, answer labels, topic notes and source appearances are preserved. Missing keys are flagged rather than filled by guesswork.</p><div class="banner-note">Ask ChatGPT shares a structured verification prompt with the ChatGPT app. If the app cannot receive it, the prompt is copied and ChatGPT opens so you can paste it. Google and Guidelines / WHO remain available. Review cited sources and dates before revising your conclusion.</div><p class="small-note">Question data: '+BANK.length+' records · '+uniq('subject').length+' source subjects · local-first, no account required.</p></section></div>';
+ html+='<section class="content-card"><h2>Question source & verification</h2><p>The included Markdown bank is the source of record. Wording, answer labels, topic notes and source appearances are preserved. Missing keys are flagged rather than filled by guesswork.</p><div class="banner-note">Quick verify shares a compact prompt; Full audit adds source context and detailed evidence instructions. Android offers compatible apps such as ChatGPT and Claude when installed. If sharing is unavailable, the prompt is copied and ChatGPT opens for pasting. Google and Guidelines / WHO searches remain available.</div><p class="small-note">Question data: '+BANK.length+' records · '+uniq('subject').length+' source subjects · local-first, no account required.</p></section></div>';
  $('#main').innerHTML=html;setActiveNav();
 }
 function exportFile(name,data,mime){
@@ -164,59 +164,82 @@ function exportFile(name,data,mime){
  if(window.Android&&typeof Android.saveTextFile==='function'){Android.saveTextFile(name,content);return;}
  var blob=new Blob([content],{type:mime||'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
-function verifyLink(src,q){
+function verifyLink(src,q,verifyMode){
  var stem=plain(q.stemMarkdown);
  var options=(q.options||[]).map(function(o){return String(o.key||'').toUpperCase()+') '+plain(o.text);});
  var term=stem+' '+options.join(' ')+' answer explanation';
  if(src==='chatgpt'){
+  var mode=verifyMode==='full'?'full':'compact';
   var sourceKey=(q.options||[]).map(function(o){
-   var mark='No source answer annotation';
+   var mark='KEY NOT PROVIDED / UNKNOWN';
    if(q.questionType==='tf')mark=o.truth===true?'SOURCE MARKS TRUE':o.truth===false?'SOURCE MARKS FALSE':'NOT KEYED / UNKNOWN';
    else if(q.questionType==='sba')mark=o.isBestAnswer?'SOURCE MARKS BEST ANSWER':'Not marked as best answer';
-   return String(o.key||'').toUpperCase()+') '+plain(o.text)+' — '+mark;
+   return String(o.key||'').toUpperCase()+') '+mark;
   }).join('\n');
-  var years=(q.years||[]).join(', ')||'Not specified';
-  var sessions=(q.sessionBuckets||[]).join(', ')||'Not specified';
-  var notes=plain(q.coverageMarkdown||'No separate high-yield topic coverage supplied for this record.');
-  var prompt=[
-   'You are independently reviewing a medical entrance/residency exam question. Your job is to verify medical correctness, not to defend the supplied answer key.',
-   '',
-   'IMPORTANT METHOD: First solve the question using only the question stem and options. State your independent answer and reasoning before you look at the source-key annotations placed at the very end of this prompt. Do not treat source annotations as ground truth.',
-   '',
-   'QUESTION METADATA',
-   'Record: '+(q.id||'Not specified'),
-   'Subject: '+(q.subject||'Not specified'),
-   'Topic/subtopic: '+(q.coverageTitle||'')+(q.subtopic?' / '+q.subtopic:''),
-   'Source year(s): '+years,
-   'Session/source: '+sessions,
-   'Question type: '+(q.questionType==='tf'?'True/False statements':q.questionType==='sba'?'Single best answer':(q.questionType||'Unclassified')),
-   '',
-   'QUESTION STEM',
-   stem||'(No parsed stem available)',
-   '',
-   'OPTIONS / STATEMENTS — ANSWER BLINDED',
-   options.join('\n')||'(No parsed options available)',
-   '',
-   'REQUIRED ANALYSIS',
-   '1. Independently solve first. For True/False, label every statement TRUE or FALSE and give a brief, discriminating rationale for each. For SBA, select one best answer and explain why each plausible distractor is inferior.',
-   '2. Then browse the web where available and verify against authoritative sources. Prioritize current clinical guidelines, official public-health guidance, and reputable peer-reviewed reviews or primary literature. Give publication/update dates and direct source URLs/citations.',
-   '3. Distinguish established facts from guideline-dependent, context-dependent, outdated, or disputed claims. Do not invent sources or citations. If evidence is insufficient or browsing is unavailable, say so plainly.',
-   '4. Only after the independent answer and evidence review, compare with the source-key annotations at the end. Identify each disagreement and explain the most defensible exam-safe answer. Do not silently overwrite or assume the bank key is correct.',
-   '5. Keep source-derived information separate from your independent medical assessment.',
-   '',
-   'HIGH-YIELD TOPIC COVERAGE FROM THE SOURCE RECORD (context only; not an answer key)',
-   notes,
-   '',
-   'SOURCE-KEY ANNOTATIONS — CHECK ONLY AFTER YOUR INDEPENDENT SOLUTION',
-   'These labels are copied from the question-bank data and may be incomplete, incorrect, or unverified:',
+  var type=q.questionType==='tf'?'True/False statements':q.questionType==='sba'?'Single best answer':(q.questionType||'Unclassified');
+  var keyBlock=[
+   'SOURCE-KEY ANNOTATIONS — READ ONLY AFTER YOUR INDEPENDENT SOLUTION',
+   'These are imported labels, not verified facts. Do not assume they are correct.',
    sourceKey,
    'Source-key status: '+(q.answerStatus||'Not specified')
   ].join('\n');
+  var prompt;
+  if(mode==='full'){
+   var years=(q.years||[]).join(', ')||'Not specified';
+   var sessions=(q.sessionBuckets||[]).join(', ')||'Not specified';
+   var notes=plain(q.coverageMarkdown||'No separate high-yield topic coverage supplied for this record.');
+   prompt=[
+    'Independently verify this medical residency exam question. Do not defend or assume the supplied key is correct.',
+    '',
+    'METHOD: Solve from the stem and options first. State your answer and reasoning before reading the source-key annotations at the very end.',
+    '',
+    'METADATA',
+    'Record: '+(q.id||'Not specified'),
+    'Subject: '+(q.subject||'Not specified'),
+    'Topic/subtopic: '+(q.coverageTitle||'')+(q.subtopic?' / '+q.subtopic:''),
+    'Source year(s): '+years,
+    'Session/source: '+sessions,
+    'Question type: '+type,
+    '',
+    'QUESTION STEM',
+    stem||'(No parsed stem available)',
+    '',
+    'OPTIONS / STATEMENTS — ANSWER BLINDED',
+    options.join('\n')||'(No parsed options available)',
+    '',
+    'REQUIRED ANALYSIS',
+    '1. Solve independently. For True/False, label every statement TRUE or FALSE with a discriminating rationale. For SBA, choose one best answer and explain why plausible distractors are inferior.',
+    '2. Verify against authoritative sources where browsing is available: current guidelines, official public-health guidance, reputable peer-reviewed reviews or primary literature. Give publication/update dates and direct URLs/citations.',
+    '3. Separate established facts from context-dependent, guideline-dependent, outdated or disputed claims. Never invent sources. State clearly if evidence or browsing is unavailable.',
+    '4. Only after the independent answer and evidence review, compare with the source-key annotations at the end. Explain disagreements and the most defensible exam-safe answer.',
+    '5. Keep source-derived content separate from your independent medical assessment. If the key is incomplete, say so; do not guess the missing key.',
+    '',
+    'SOURCE TOPIC COVERAGE (context only, not an answer key)',
+    notes,
+    '',
+    keyBlock
+   ].join('\n');
+  }else{
+   prompt=[
+    'Independently solve this medical residency exam question before checking the imported key. Do not assume the key is correct.',
+    'Record: '+(q.id||'Not specified')+' | Subject: '+(q.subject||'Not specified')+' | Topic: '+((q.coverageTitle||'')+(q.subtopic?' / '+q.subtopic:''))+' | Type: '+type,
+    '',
+    'QUESTION STEM',
+    stem||'(No parsed stem available)',
+    '',
+    'OPTIONS / STATEMENTS — ANSWER BLINDED',
+    options.join('\n')||'(No parsed options available)',
+    '',
+    'Answer first with reasoning: for True/False, judge every statement TRUE/FALSE; for SBA, choose the single best answer and distinguish plausible distractors. Then briefly verify important facts against reliable sources if browsing is available. Do not invent citations. Finally compare your answer with the source-key annotations below; identify disagreements. If the key is incomplete, say so rather than guessing.',
+    '',
+    keyBlock
+   ].join('\n');
+  }
   if(window.Android&&typeof Android.askChatGPT==='function'){Android.askChatGPT(prompt);return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){
-   navigator.clipboard.writeText(prompt).then(function(){location.href='https://chatgpt.com/';}).catch(function(){window.prompt('Copy this verification prompt, then paste it into ChatGPT.',prompt);});
+   navigator.clipboard.writeText(prompt).then(function(){location.href='https://chatgpt.com/';}).catch(function(){window.prompt('Copy this verification prompt, then paste it into ChatGPT or Claude.',prompt);});
   }else{
-   window.prompt('Copy this verification prompt, then paste it into ChatGPT.',prompt);
+   window.prompt('Copy this verification prompt, then paste it into ChatGPT or Claude.',prompt);
   }
   return;
  }
@@ -255,7 +278,7 @@ document.addEventListener('click',function(e){
  if(target.dataset.flag){e.preventDefault();toggleItem(state.flags,target.dataset.flag);detailQuestion();return;}
  if(target.dataset.tf){var id=target.dataset.qid,k=target.dataset.tf;selected[id]=selected[id]||{};selected[id][k]=target.dataset.value==='true';var q=BANK.find(function(x){return x.id===id;});if(q&&currentId===id)detailQuestion();return;}
  if(target.dataset.sba){var sid=target.dataset.qid||currentId;selected[sid]=selected[sid]||{};selected[sid].sba=target.dataset.sba;detailQuestion();return;}
- if(target.dataset.verifySource){var qv=BANK.find(function(x){return x.id===currentId;});if(qv)verifyLink(target.dataset.verifySource,qv);return;}
+ if(target.dataset.verifySource){var qv=BANK.find(function(x){return x.id===currentId;});if(qv)verifyLink(target.dataset.verifySource,qv,target.dataset.verifyMode);return;}
  if(target.dataset.status){filters.status=target.dataset.status;limit=30;homePage();return;}
  if(target.dataset.mode){mode=target.dataset.mode;detailQuestion();return;}
  if(target.dataset.action){

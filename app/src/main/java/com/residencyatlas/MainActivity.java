@@ -96,9 +96,9 @@ public class MainActivity extends Activity {
                 share.setType("text/plain");
                 share.putExtra(Intent.EXTRA_TEXT, questionPrompt);
                 share.putExtra(Intent.EXTRA_TITLE, "Residency Atlas medical answer verification");
-                share.setPackage("com.openai.chatgpt");
                 try {
-                    startActivity(share);
+                    // Let Android offer compatible apps, including ChatGPT and Claude when installed.
+                    startActivity(Intent.createChooser(share, "Verify with ChatGPT, Claude, or another app"));
                 } catch (ActivityNotFoundException e) {
                     copyPromptAndOpenChatGPT(questionPrompt);
                 } catch (RuntimeException e) {
@@ -155,7 +155,7 @@ public class MainActivity extends Activity {
         }
 
         if (copied) {
-            Toast.makeText(this, "Verification prompt copied. Paste it into ChatGPT.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Verification prompt copied. Paste it into ChatGPT or Claude.", Toast.LENGTH_LONG).show();
         } else {
             Toast.makeText(this, "Could not share the prompt. Opening ChatGPT; try sharing again.", Toast.LENGTH_LONG).show();
         }
