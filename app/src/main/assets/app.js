@@ -175,14 +175,14 @@ function verifyLink(src,q,verifyMode){
    if(q.questionType==='tf')mark=o.truth===true?'SOURCE MARKS TRUE':o.truth===false?'SOURCE MARKS FALSE':'NOT KEYED / UNKNOWN';
    else if(q.questionType==='sba')mark=o.isBestAnswer?'SOURCE MARKS BEST ANSWER':'Not marked as best answer';
    return String(o.key||'').toUpperCase()+') '+mark;
-  }).join('\\n');
+  }).join('\n');
   var type=q.questionType==='tf'?'True/False statements':q.questionType==='sba'?'Single best answer':(q.questionType||'Unclassified');
   var keyBlock=[
    'SOURCE-KEY ANNOTATIONS — READ ONLY AFTER YOUR INDEPENDENT SOLUTION',
    'These are imported labels, not verified facts. Do not assume they are correct.',
    sourceKey,
    'Source-key status: '+(q.answerStatus||'Not specified')
-  ].join('\\n');
+  ].join('\n');
   var prompt;
   if(mode==='full'){
    var years=(q.years||[]).join(', ')||'Not specified';
@@ -205,7 +205,7 @@ function verifyLink(src,q,verifyMode){
     stem||'(No parsed stem available)',
     '',
     'OPTIONS / STATEMENTS — ANSWER BLINDED',
-    options.join('\\n')||'(No parsed options available)',
+    options.join('\n')||'(No parsed options available)',
     '',
     'REQUIRED ANALYSIS',
     '1. Solve independently. For True/False, label every statement TRUE or FALSE with a discriminating rationale. For SBA, choose one best answer and explain why plausible distractors are inferior.',
@@ -218,7 +218,7 @@ function verifyLink(src,q,verifyMode){
     notes,
     '',
     keyBlock
-   ].join('\\n');
+   ].join('\n');
   }else{
    prompt=[
     'Independently solve this medical residency exam question before checking the imported key. Do not assume the key is correct.',
@@ -228,12 +228,12 @@ function verifyLink(src,q,verifyMode){
     stem||'(No parsed stem available)',
     '',
     'OPTIONS / STATEMENTS — ANSWER BLINDED',
-    options.join('\\n')||'(No parsed options available)',
+    options.join('\n')||'(No parsed options available)',
     '',
     'Answer first with reasoning: for True/False, judge every statement TRUE/FALSE; for SBA, choose the single best answer and distinguish plausible distractors. Then briefly verify important facts against reliable sources if browsing is available. Do not invent citations. Finally compare your answer with the source-key annotations below; identify disagreements. If the key is incomplete, say so rather than guessing.',
     '',
     keyBlock
-   ].join('\\n');
+   ].join('\n');
   }
   if(window.Android&&typeof Android.askChatGPT==='function'){Android.askChatGPT(prompt);return;}
   if(navigator.clipboard&&navigator.clipboard.writeText){
