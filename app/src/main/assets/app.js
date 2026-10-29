@@ -96,12 +96,11 @@ function queueForPage(){if(queue.length)return queue;return filtered().map(funct
 function detailQuestion(){var q=BANK.find(function(x){return x.id===currentId;});if(!q){homePage();return;}
  page='question';var qu=queueForPage(),idx=qu.indexOf(q.id);if(idx<0){qu=[q.id];idx=0;queue=qu;}
  var prev=qu[idx-1],next=qu[idx+1],a=state.answers[q.id]||{},sel=selected[q.id]||a.choices||{},revealedNow=revealed.has(q.id)||a.revealed===true;
- var title=plain(q.stemMarkdown);if(title.length>450)title=title.slice(0,450);
  var meta='<span class="tag">'+esc(q.subject)+'</span><span class="tag">'+esc(q.subtopic)+'</span><span class="tag">'+(q.questionType==='tf'?'True / False':q.questionType==='sba'?'Single Best Answer':'Unknown format')+'</span>'+(q.years||[]).map(function(y){return '<span class="tag source">'+esc(y)+'</span>';}).join('')+'<span class="tag">'+esc((q.sessionBuckets||[]).join(' · ')||'Year/session not specified')+'</span>';
  var html='';
  if(queue.length)html+='<div class="session-banner"><div><h2>Practice session</h2><p>Question order can be randomized; progress is saved on this device.</p></div><span class="session-progress">'+(idx+1)+' / '+qu.length+'</span></div>';
  html+='<div class="detail-toolbar"><button class="secondary" data-action="back-results">← Back to questions</button><div class="detail-nav"><button class="secondary" data-action="prev-question" '+(!prev?'disabled':'')+'>← Previous</button>'+(mode==='study'?'<button class="secondary" data-action="next-question" '+(!next?'disabled':'')+'>Next →</button>':'')+'</div></div>';
- html+='<div class="detail-title"><span class="q-id">'+esc(q.id)+'</span><div><h1>'+esc(title||'Question')+'</h1><div class="tag-row">'+meta+'</div></div></div>';
+ html+='<div class="detail-title"><span class="q-id">'+esc(q.id)+'</span><div class="tag-row">'+meta+'</div></div>';
  html+='<div class="detail-toolbar"><div class="chip-row"><button class="chip '+(mode==='study'?'active':'')+'" data-mode="study">Study mode</button><button class="chip '+(mode==='practice'?'active':'')+'" data-mode="practice">Interactive practice</button></div><div class="detail-nav"><button class="secondary" data-bookmark="'+esc(q.id)+'">'+(isBookmarked(q.id)?'★ Bookmarked':'☆ Bookmark')+'</button><button class="'+(isFlagged(q.id)?'danger':'secondary')+'" data-flag="'+esc(q.id)+'">'+(isFlagged(q.id)?'⚑ Flagged':'⚑ Verify later')+'</button></div></div>';
  html+='<div class="detail-layout"><div><section class="content-card"><h2>Question stem</h2><div class="stem-content">'+renderMd(q.stemMarkdown)+'</div><div class="options-list">';
  if(q.questionType==='tf'){
@@ -115,8 +114,8 @@ function detailQuestion(){var q=BANK.find(function(x){return x.id===currentId;})
  }
  html+='</div>';
  if(mode==='practice'){
- if(!revealedNow)html+='<div class="question-actions"><button class="primary" data-action="check-answer">✓ Check answer</button><button class="secondary" data-action="reveal-answer">Reveal source key</button></div>';
- else html+='<div class="question-actions"><button class="primary" data-action="next-question" '+(!next?'disabled':'')+'>'+(next?'Next question →':'Finish practice')+'</button><button class="secondary" data-action="hide-answer">Hide key & try again</button></div>';
+ if(!revealedNow)html+='<div class="question-actions"><button class="primary" data-action="check-answer">✓ Check answer</button><button class="secondary" data-action="reveal-answer">Reveal source key</button><button class="secondary" data-action="next-question" '+(!next&&!queue.length?'disabled':'')+'>'+(next?'Next question →':queue.length?'Finish practice':'End of filtered questions')+'</button></div>';
+ else html+='<div class="question-actions"><button class="primary" data-action="next-question" '+(!next&&!queue.length?'disabled':'')+'>'+(next?'Next question →':queue.length?'Finish practice':'End of filtered questions')+'</button><button class="secondary" data-action="hide-answer">Hide key & try again</button></div>';
  }else html+='<div class="question-actions"><button class="primary" data-mode="practice">▷ Practise this question</button><button class="secondary" data-action="reveal-answer">Show source key</button></div>';
  if(revealedNow||a.checkedThisView){
  if(q.answerStatus==='keyed'){
