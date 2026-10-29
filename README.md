@@ -9,12 +9,12 @@ Residency Atlas is an independent Android study app built around the supplied **
 - Interactive True/False and Single Best Answer practice, source-key reveal, bookmarks, mistake review and flagged questions.
 - Local progress analytics, adjustable text size, dark mode, progress backup/restore and JSON export.
 - Offline access to all bundled questions and explanations.
-- Optional Google, Google Scholar, PubMed and guideline-oriented web searches for verification.
+- Optional ChatGPT-assisted independent answer review, Google search and WHO/NICE/CDC-oriented guideline searches for verification.
 - GitHub Actions builds a downloadable Android debug APK.
 
 ## Answer provenance
 
-Question wording, supplied answer annotations, appearances and topic coverage are retained from the Markdown bank. The parser only structures source information; a parsed key is **not** independently medically verified. Questions without complete machine-readable answer annotations are marked for review. Online verification opens external searches and does not automatically certify a result.
+Question wording, supplied answer annotations, appearances and topic coverage are retained from the Markdown bank. The parser only structures source information; a parsed key is **not** independently medically verified. Questions without complete machine-readable answer annotations are marked for review. Online verification opens ChatGPT or external searches; it does not automatically certify a result. The ChatGPT handoff places source-key annotations at the end of the prompt so the question can be solved independently first.
 
 ## Build from GitHub
 
